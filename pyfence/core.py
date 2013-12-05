@@ -122,7 +122,7 @@ def extract_requirements(fx, fqn):
     if pyfence.options['lint']:
         for argument in described_arguments:
             if not argument in reqs['argument_types']:
-                warn(format_file_location(fx))
+                warn(fqn)
                 warn('No type specified for argument %s' % repr(argument))
     return reqs
 
