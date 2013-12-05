@@ -2,7 +2,7 @@
 *.pyo
 .DS_Store
 *~
-*.sublime-workspace
+*.sublime-*
 .coverage
 dist/*.gz
 *.egg*
