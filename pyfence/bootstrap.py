@@ -1,5 +1,3 @@
-
-
 import sys
 
 import pyfence
@@ -43,9 +41,10 @@ def install_import_hook():
 
     def importer(*args, **kwargs):
         m = original_importer(*args, **kwargs)
-        if module_eligible(m):
+        if module_eligible(m) and not pyfence.options['off']:
             debug('Importing %s' % (m.__name__))
             fence_namespace(m)
         return m
 
     builtins.__import__ = importer    
+    debug('Import hook installed')
