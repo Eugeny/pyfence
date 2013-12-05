@@ -1,0 +1,10 @@
+*.pyc
+*.pyo
+.DS_Store
+*~
+*.sublime-workspace
+.coverage
+dist/*.gz
+*.egg*
+build/*
+docs/build
