@@ -84,7 +84,8 @@ def parse_type_spec(spec):
     specs = {
         'class': [types.TypeType],
         'any': [object],
-        'None': [types.NoneType],
+        'str': [basestring],
+        'None': [type(None)],
         'function': ['function', 'instancemethod', 'staticmethod', 'classmethod']
     }
 
@@ -176,7 +177,7 @@ def fence_function(fx, parent=None, fqn=None):
         fx = fx.im_func
 
     is_staticmethod = False
-    if not is_classmethod and  not hasattr(fx, 'im_class') and parent is not None and type(parent) in [types.ClassType, types.TypeType]:
+    if type(fx) is staticmethod:
         is_staticmethod = True
 
     try:
@@ -290,7 +291,11 @@ def fence_namespace(m, stack=None, fqn=None):
         if not hasattr(m, key):
             continue
 
-        value = getattr(m, key)
+        if hasattr(m, '__dict__'):
+            value = m.__dict__[key]
+        else:
+            value = getattr(m, key)
+
         if hasattr(value, '__module__'):
             if not module_eligible(value.__module__):
                 continue

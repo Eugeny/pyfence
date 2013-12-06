@@ -4,7 +4,7 @@ from pyfence.bootstrap import parse_options, install_import_hook
 from pyfence.core import fence_function, fence_namespace
 
 
-__version__ = '0.1.4'
+__version__ = '0.1.5'
 
 
 options = defaultdict(bool)
