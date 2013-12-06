@@ -7,8 +7,7 @@ class RationalFormatter (object):
             >>> print(RationalFormatter().format(1.25))
             5/4
 
-        :param number: input number
-        :type  number: float
+        :param float number: input number
         :raises      : None
         :rtype       : str
         """

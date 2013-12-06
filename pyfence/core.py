@@ -129,7 +129,11 @@ def extract_requirements(fx, fqn):
                 warn(fqn)
                 warn('Broken argument entry for %s: %s' % (repr(fx), repr(original)))
                 continue
-            described_arguments.append(params[1])
+            if len(params) == 2:
+                described_arguments.append(params[1])
+            else:
+                described_arguments.append(params[2])
+                reqs['argument_types'][params[2]] = parse_type_spec(params[1])
 
         if params[0] == 'type':
             if len(params) < 2:
