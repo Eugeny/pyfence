@@ -206,7 +206,7 @@ def fence_function(fx, parent=None, fqn=None):
             if len(requirements['raises']) == 0:
                 raise
             for required_type in requirements['raises']:
-                if validate_type(type(ex), required_type):
+                if validate_type(type(ex), [required_type]):
                     raise
             else:
                 log_failure_header()
