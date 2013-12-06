@@ -1,4 +1,5 @@
 import inspect
+import itertools
 import re
 import types
 import sys
@@ -13,35 +14,44 @@ def abort():
     sys.exit(1)
 
 
-def validate_single_type(type, target):
+def validate_single_type(srctype, target):
     """
     Compares a type against a string description
 
-    :param type: source type
-    :param target: type pattern
+    :param srctype: source type
+    :param target: srctype pattern
     """
-    target = str(target)
 
-    if type.__name__ == target:
-        return True
+    if type(target) is not str:
+        # comparing type objects
+        if srctype is target:
+            return True
+    else:
+        if '.' in target:
+            # comparing FQNs
+            fqn = srctype.__module__ + '.' + srctype.__name__
+            return target == fqn
+        else:
+            # comparing class names
+            return srctype.__name__ == target
 
-    if '.' in target:
-        fqn = type.__module__ + '.' + type.__name__
-        return target == fqn
+    return False
 
 
-def validate_type(type, targets):
+def validate_type(srctype, targets):
     """
     Compares type and its bases against a typelist string description
 
-    :param type: source type
+    :param srctype: source type
     :param target: typelist pattern
     """
-    targets = targets.split(',')
-    if not hasattr(type, 'mro') or pyfence.options['strict']:
-        candidates = [type]
+    if not hasattr(srctype, 'mro') or pyfence.options['strict']:
+        candidates = [srctype]
     else:
-        candidates = type.mro()
+        if srctype is type:
+            candidates = type.mro(srctype)
+        else:
+            candidates = srctype.mro()
 
     for src_type in candidates:
         for target in targets:
@@ -65,6 +75,26 @@ def extract_argument(argument_name, fx, args, kwargs):
     else:
         value = args[arg_index]
     return value
+
+
+def parse_type_spec(spec):
+    targets = map(str.strip, spec.split(','))
+
+    # Map common "meta-types"
+    specs = {
+        'class': [types.TypeType],
+        'any': [object],
+        'None': [types.NoneType],
+        'function': ['function', 'instancemethod', 'staticmethod', 'classmethod']
+    }
+
+    targets = itertools.chain(*[specs.get(x, [x]) for x in targets])
+    targets = [
+        x.split('`')[1] if type(x) is str and x.startswith(':class')
+        else x 
+        for x in targets
+    ]
+    return targets
 
 
 def extract_requirements(fx, fqn):
@@ -112,12 +142,13 @@ def extract_requirements(fx, fqn):
                 warn('Argument %s not present in %s' % (repr(argument_name), repr(fx)))
                 continue
 
-            reqs['argument_types'][argument_name] = value
+            reqs['argument_types'][argument_name] = parse_type_spec(value)
 
         if params[0] == 'rtype':
-            reqs['return_type'] = value
+            reqs['return_type'] = parse_type_spec(value)
+
         if params[0] in ['raises', 'raise', 'except', 'exception']:
-            reqs['raises'].append(value)
+            reqs['raises'] += parse_type_spec(value)
 
     if pyfence.options['lint']:
         for argument in described_arguments:
@@ -142,10 +173,10 @@ def fence_function(fx, parent=None, fqn=None):
     is_classmethod = False
     if hasattr(fx, 'im_self') and fx.im_self is not None:
         is_classmethod = True
-        fx = fx.__func__
+        fx = fx.im_func
 
     is_staticmethod = False
-    if not hasattr(fx, 'im_class') and parent is not None and type(parent) in [types.ClassType, types.TypeType]:
+    if not is_classmethod and  not hasattr(fx, 'im_class') and parent is not None and type(parent) in [types.ClassType, types.TypeType]:
         is_staticmethod = True
 
     try:
@@ -213,10 +244,12 @@ def fence_function(fx, parent=None, fqn=None):
         final_wrapper = instance_wrapper
 
     if is_classmethod:
-        final_wrapper = classmethod(wrapper)
+        def class_wrapper(cls, *args, **kwargs):
+            return wrapper(*([cls] + list(args)), **kwargs)
+        final_wrapper = classmethod(class_wrapper)
 
-    #if is_staticmethod:
-        #final_wrapper = staticmethod(wrapper)
+    if is_staticmethod:
+        final_wrapper = staticmethod(wrapper)
 
     return final_wrapper
 
